@@ -1,18 +1,15 @@
-require ("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config({ path: ".env" });
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
 module.exports = {
-  solidity: "0.8.28",
+  solidity: "0.8.18",
   networks: {
     sepolia: {
       url: process.env.ALCHEMY_SEPOLIA_API_URL,
-    
-
-      accounts: [process.env.ACCOUNT_PRIVATE_KEY],
-    },
+      accounts: [process.env.ACCOUNT_PRIVATE_KEY]
+    }
   },
-
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
-  },
+    apiKey: process.env.ETHERSCAN_API_KEY
+  }
 };
