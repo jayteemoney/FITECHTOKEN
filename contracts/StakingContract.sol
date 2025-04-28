@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract StakingContract is Ownable {
+contract StakingContract {
     IERC20 public rewardToken;
     uint256 public rewardRate;
     uint256 public lockupPeriod;
     uint256 public rewardPool;
     uint256 public totalStaked;
+    address public owner;
 
     struct StakeInfo {
         uint256 amount;
@@ -25,10 +25,17 @@ contract StakingContract is Ownable {
     event RewardPoolFunded(uint256 amount);
     event EmergencyWithdrawn(address indexed user, uint256 amount);
 
-    constructor(address _owner, address _rewardToken, uint256 _rewardRate, uint256 _lockupPeriod) Ownable(_owner) {
+    constructor(address _owner, address _rewardToken, uint256 _rewardRate, uint256 _lockupPeriod) {
+        require(_owner != address(0), "Owner cannot be zero address");
+        owner = _owner;
         rewardToken = IERC20(_rewardToken);
         rewardRate = _rewardRate;
         lockupPeriod = _lockupPeriod;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
     }
 
     function stake() external payable {

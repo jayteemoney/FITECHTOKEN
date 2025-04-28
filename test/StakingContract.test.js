@@ -10,16 +10,22 @@ describe("StakingContract", function () {
 
     beforeEach(async function () {
         [owner, user1, user2] = await ethers.getSigners();
-        console.log("Owner address:", owner.address); // Debug owner address
+        console.log("Owner address:", owner.address);
 
         // Deploy FitechToken
         try {
             FitechToken = await ethers.getContractFactory("FitechToken");
-            fitechToken = await FitechToken.deploy(owner.address);
-            await fitechToken.waitForDeployment(); // Explicitly wait for deployment
-            console.log("FitechToken deployed at:", fitechToken.address);
+            const deployTx = await FitechToken.deploy(owner.address, { gasLimit: 5000000 });
+            const receipt = await deployTx.deploymentTransaction().wait();
+            console.log("FitechToken deployTx:", deployTx);
+            console.log("FitechToken receipt:", receipt);
+            if (!receipt.contractAddress) {
+                throw new Error("No contract address in receipt");
+            }
+            fitechToken = await ethers.getContractAt("FitechToken", receipt.contractAddress);
+            console.log("FitechToken address:", fitechToken.address);
             expect(fitechToken.address).to.not.equal(undefined, "FitechToken address is undefined");
-            expect(fitechToken.address).to.not.equal(null, "FitechToken address is null");
+            expect(fitechToken.address).to.match(/^0x[a-fA-F0-9]{40}$/, "Invalid FitechToken address");
         } catch (error) {
             console.error("FitechToken deployment failed:", error);
             throw error;
@@ -28,15 +34,17 @@ describe("StakingContract", function () {
         // Deploy StakingContract
         try {
             StakingContract = await ethers.getContractFactory("StakingContract");
-            stakingContract = await StakingContract.deploy(
+            const deployTx = await StakingContract.deploy(
                 owner.address,
                 fitechToken.address,
                 rewardRate,
-                lockupPeriod
+                lockupPeriod,
+                { gasLimit: 5000000 }
             );
-            await stakingContract.waitForDeployment();
-            console.log("StakingContract deployed at:", stakingContract.address);
-            expect(stakingContract.address).to.not.equal(undefined, "StakingContract address is undefined");
+            const receipt = await deployTx.deploymentTransaction().wait();
+            console.log("StakingContract receipt:", receipt);
+            stakingContract = await ethers.getContractAt("StakingContract", receipt.contractAddress);
+            console.log("StakingContract address:", stakingContract.address);
         } catch (error) {
             console.error("StakingContract deployment failed:", error);
             throw error;
@@ -55,6 +63,7 @@ describe("StakingContract", function () {
     });
 
     it("should allow owner to fund reward pool", async function () {
+        await fitechToken.mint(owner.address, fundAmount);
         await fitechToken.connect(owner).approve(stakingContract.address, fundAmount);
         await stakingContract.connect(owner).fundRewardPool(fundAmount);
         expect(await stakingContract.getRewardPoolBalance()).to.equal(fundAmount);
@@ -67,6 +76,7 @@ describe("StakingContract", function () {
     });
 
     it("should calculate and claim rewards after funding", async function () {
+        await fitechToken.mint(owner.address, fundAmount);
         await fitechToken.connect(owner).approve(stakingContract.address, fundAmount);
         await stakingContract.connect(owner).fundRewardPool(fundAmount);
         await stakingContract.connect(user1).stake({ value: stakeAmount });
