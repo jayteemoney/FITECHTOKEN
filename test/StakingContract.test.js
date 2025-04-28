@@ -14,7 +14,8 @@ describe("StakingContract", function () {
         // Deploy FitechToken
         FitechToken = await ethers.getContractFactory("FitechToken");
         fitechToken = await FitechToken.deploy(owner.address);
-        await fitechToken.deployed();
+        console.log("FitechToken deployed at:", fitechToken.address); // Debug
+        expect(fitechToken.address).to.not.equal(null, "FitechToken address is null");
 
         // Deploy StakingContract
         StakingContract = await ethers.getContractFactory("StakingContract");
@@ -24,7 +25,8 @@ describe("StakingContract", function () {
             rewardRate,
             lockupPeriod
         );
-        await stakingContract.deployed();
+        console.log("StakingContract deployed at:", stakingContract.address); // Debug
+        expect(stakingContract.address).to.not.equal(null, "StakingContract address is null");
     });
 
     it("should deploy with correct initial values", async function () {
@@ -51,25 +53,16 @@ describe("StakingContract", function () {
     });
 
     it("should calculate and claim rewards after funding", async function () {
-        // Fund reward pool
         await fitechToken.connect(owner).approve(stakingContract.address, fundAmount);
         await stakingContract.connect(owner).fundRewardPool(fundAmount);
-
-        // User stakes 1 ETH
         await stakingContract.connect(user1).stake({ value: stakeAmount });
-
-        // Fast-forward time (e.g., 1 day)
         await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
         await ethers.provider.send("evm_mine");
-
-        // Check available reward (~0.01 FitechToken)
         const reward = await stakingContract.availableReward(user1.address);
         expect(reward).to.be.closeTo(
             ethers.parseUnits("0.01", 18),
-            ethers.parseUnits("0.001", 18) // Allow small deviation
+            ethers.parseUnits("0.001", 18)
         );
-
-        // Claim reward
         await stakingContract.connect(user1).claimReward();
         expect(await fitechToken.getBalance(user1.address)).to.be.closeTo(
             ethers.parseUnits("0.01", 18),
@@ -79,17 +72,11 @@ describe("StakingContract", function () {
 
     it("should allow unstaking after lockup period", async function () {
         await stakingContract.connect(user1).stake({ value: stakeAmount });
-
-        // Try unstaking before lockup (should fail)
         await expect(
             stakingContract.connect(user1).unstake(stakeAmount)
         ).to.be.revertedWith("Lockup period not passed");
-
-        // Fast-forward past lockup period
         await ethers.provider.send("evm_increaseTime", [lockupPeriod + 1]);
         await ethers.provider.send("evm_mine");
-
-        // Unstake
         const initialBalance = await ethers.provider.getBalance(user1.address);
         await stakingContract.connect(user1).unstake(stakeAmount);
         expect(await stakingContract.stakedAmount(user1.address)).to.equal(0);
