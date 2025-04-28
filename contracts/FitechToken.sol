@@ -1,17 +1,15 @@
-
 // SPDX-License-Identifier: MIT
-// Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Pandas is ERC20, Ownable, ERC20Permit {
+contract FitechToken is ERC20, Ownable, ERC20Permit {
     constructor(address initialOwner)
-        ERC20("pandas", "pnd")
+        ERC20("FitechToken", "FTK")
         Ownable(initialOwner)
-        ERC20Permit("pandas")
+        ERC20Permit("FitechToken")
     {
         _mint(msg.sender, 10000000000 * 10 ** decimals());
     }

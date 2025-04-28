@@ -9,21 +9,21 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract StakingContract is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     
-    IERC20 public stakingToken;  // I Am Referencing  the Pandas token
-    uint256 public rewardRate;   // Reward rate per block
+    IERC20 public rewardToken;   // FitechToken for rewards
+    uint256 public rewardRate;   // Reward rate per second per ETH staked
     uint256 public lockupPeriod; // Lockup period for staking
 
     struct Stake {
-        uint256 amount;
-        uint256 rewardDebt;
-        uint256 lastStakeTime;
+        uint256 amount;         // Amount of ETH staked
+        uint256 rewardDebt;     // Tracks rewards already claimed
+        uint256 lastStakeTime;  // When the user last staked
     }
 
     mapping(address => Stake) public stakes;
 
-    uint256 public totalStaked;  // Total amount of tokens staked
-    uint256 public totalRewards; // Total rewards distributed
-    uint256 public rewardPool;   // Available reward tokens in the contract
+    uint256 public totalStaked;  // Total ETH staked
+    uint256 public totalRewards; // Total FitechToken rewards distributed
+    uint256 public rewardPool;   // Available FitechToken in the contract
 
     event Staked(address indexed user, uint256 amount);
     event Unstaked(address indexed user, uint256 amount);
@@ -33,14 +33,17 @@ contract StakingContract is Ownable, ReentrancyGuard {
 
     constructor(
         address initialOwner,
-        address _stakingToken,
+        address _rewardToken,
         uint256 _rewardRate,
         uint256 _lockupPeriod
     ) Ownable(initialOwner) {
-        stakingToken = IERC20(_stakingToken);
+        rewardToken = IERC20(_rewardToken); // FitechToken address
         rewardRate = _rewardRate;
         lockupPeriod = _lockupPeriod;
     }
+
+    // Allow contract to receive Ether
+    receive() external payable {}
 
     // Modifier to check if the user has a valid lockup
     modifier lockupNotPassed(address _user) {
@@ -51,23 +54,17 @@ contract StakingContract is Ownable, ReentrancyGuard {
         _;
     }
 
-    // Fund the reward pool admin only
+    // Fund the reward pool with FitechToken (admin only)
     function fundRewardPool(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount must be greater than 0");
-        
-        // Transfer tokens from owner to contract
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        rewardToken.safeTransferFrom(msg.sender, address(this), amount);
         rewardPool += amount;
-        
         emit RewardPoolFunded(amount);
     }
 
-    // Stake tokens and start earning rewards
-    function stake(uint256 amount) external nonReentrant {
-        require(amount > 0, "Amount must be greater than 0");
-
-        // Transfer staking tokens to the contract
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+    // Stake Ether and start earning FitechToken rewards
+    function stake() external payable nonReentrant {
+        require(msg.value > 0, "Amount must be greater than 0");
 
         // Update the user's stake
         Stake storage userStake = stakes[msg.sender];
@@ -75,15 +72,15 @@ contract StakingContract is Ownable, ReentrancyGuard {
         // Claim any rewards before updating stake
         _claimReward(msg.sender);
 
-        userStake.amount += amount;
+        userStake.amount += msg.value;
         userStake.lastStakeTime = block.timestamp;
 
-        totalStaked += amount;
+        totalStaked += msg.value;
 
-        emit Staked(msg.sender, amount);
+        emit Staked(msg.sender, msg.value);
     }
 
-    // Unstake tokens after lockup period
+    // Unstake Ether after lockup period
     function unstake(uint256 amount) external nonReentrant lockupNotPassed(msg.sender) {
         require(amount > 0, "Amount must be greater than 0");
         require(stakes[msg.sender].amount >= amount, "Insufficient staked balance");
@@ -95,13 +92,14 @@ contract StakingContract is Ownable, ReentrancyGuard {
         stakes[msg.sender].amount -= amount;
         totalStaked -= amount;
 
-        // Transfer the unstaked tokens back to the user
-        stakingToken.safeTransfer(msg.sender, amount);
+        // Transfer Ether back to the user
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Failed to send Ether");
 
         emit Unstaked(msg.sender, amount);
     }
 
-    // Claim accumulated rewards
+    // Claim accumulated FitechToken rewards
     function claimReward() external nonReentrant {
         _claimReward(msg.sender);
     }
@@ -113,35 +111,36 @@ contract StakingContract is Ownable, ReentrancyGuard {
 
         require(rewardPool >= reward, "Insufficient reward pool");
 
-        // Update the user's reward debt to avoid re-claiming same rewards
+        // Update the user's reward debt and last stake time
         stakes[_user].rewardDebt += reward;
         stakes[_user].lastStakeTime = block.timestamp;
 
         totalRewards += reward;
         rewardPool -= reward;
 
-        // Transfer the reward tokens to the user
-        stakingToken.safeTransfer(_user, reward);
+        // Transfer FitechToken rewards to the user
+        rewardToken.safeTransfer(_user, reward);
 
         emit RewardClaimed(_user, reward);
     }
 
-    // Emergency withdrawal of staked tokens by the user (without rewards)
+    // Emergency withdrawal of staked Ether (without rewards)
     function emergencyWithdraw() external nonReentrant {
         uint256 amount = stakes[msg.sender].amount;
-        require(amount > 0, "No staked tokens to withdraw");
+        require(amount > 0, "No staked Ether to withdraw");
 
         // Reset the user's stake
         stakes[msg.sender].amount = 0;
         totalStaked -= amount;
 
-        // Transfer tokens back to the user
-        stakingToken.safeTransfer(msg.sender, amount);
+        // Transfer Ether back to the user
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Failed to send Ether");
 
         emit EmergencyWithdraw(msg.sender, amount);
     }
 
-    // Calculate the reward for a specific user
+    // Calculate the FitechToken reward for a specific user
     function _calculateReward(address _user) internal view returns (uint256) {
         Stake memory userStake = stakes[_user];
         if (userStake.amount == 0) return 0;
@@ -161,22 +160,22 @@ contract StakingContract is Ownable, ReentrancyGuard {
         lockupPeriod = newLockupPeriod;
     }
 
-    // View function to get the user's staked amount
+    // View function to get the user's staked Ether amount
     function stakedAmount(address user) external view returns (uint256) {
         return stakes[user].amount;
     }
 
-    // View function to get the total amount of rewards available to a user
+    // View function to get the total amount of FitechToken rewards available to a user
     function availableReward(address user) external view returns (uint256) {
         return _calculateReward(user);
     }
 
-    // View function to get total staked amount in the contract
+    // View function to get total staked Ether in the contract
     function getTotalStaked() external view returns (uint256) {
         return totalStaked;
     }
     
-    // View function to get the current reward pool balance
+    // View function to get the current FitechToken reward pool balance
     function getRewardPoolBalance() external view returns (uint256) {
         return rewardPool;
     }
