@@ -10,23 +10,37 @@ describe("StakingContract", function () {
 
     beforeEach(async function () {
         [owner, user1, user2] = await ethers.getSigners();
+        console.log("Owner address:", owner.address); // Debug owner address
 
         // Deploy FitechToken
-        FitechToken = await ethers.getContractFactory("FitechToken");
-        fitechToken = await FitechToken.deploy(owner.address);
-        console.log("FitechToken deployed at:", fitechToken.address); // Debug
-        expect(fitechToken.address).to.not.equal(null, "FitechToken address is null");
+        try {
+            FitechToken = await ethers.getContractFactory("FitechToken");
+            fitechToken = await FitechToken.deploy(owner.address);
+            await fitechToken.waitForDeployment(); // Explicitly wait for deployment
+            console.log("FitechToken deployed at:", fitechToken.address);
+            expect(fitechToken.address).to.not.equal(undefined, "FitechToken address is undefined");
+            expect(fitechToken.address).to.not.equal(null, "FitechToken address is null");
+        } catch (error) {
+            console.error("FitechToken deployment failed:", error);
+            throw error;
+        }
 
         // Deploy StakingContract
-        StakingContract = await ethers.getContractFactory("StakingContract");
-        stakingContract = await StakingContract.deploy(
-            owner.address,
-            fitechToken.address,
-            rewardRate,
-            lockupPeriod
-        );
-        console.log("StakingContract deployed at:", stakingContract.address); // Debug
-        expect(stakingContract.address).to.not.equal(null, "StakingContract address is null");
+        try {
+            StakingContract = await ethers.getContractFactory("StakingContract");
+            stakingContract = await StakingContract.deploy(
+                owner.address,
+                fitechToken.address,
+                rewardRate,
+                lockupPeriod
+            );
+            await stakingContract.waitForDeployment();
+            console.log("StakingContract deployed at:", stakingContract.address);
+            expect(stakingContract.address).to.not.equal(undefined, "StakingContract address is undefined");
+        } catch (error) {
+            console.error("StakingContract deployment failed:", error);
+            throw error;
+        }
     });
 
     it("should deploy with correct initial values", async function () {
