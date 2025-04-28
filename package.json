@@ -1,21 +1,21 @@
 {
-  "name": "fitech-token",
-  "version": "1.0.0",
-  "description": "Fitech Staking Project",
-  "devDependencies": {
-      "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
-      "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-      "@nomicfoundation/hardhat-ignition": "^0.15.0",
-      "hardhat": "^2.23.0"
-  },
-  "dependencies": {
-      "@openzeppelin/contracts": "^5.0.2",
-      "dotenv": "^16.4.5",
-      "ethers": "^6.13.2"
-  },
-  "scripts": {
-      "test": "npx hardhat test",
-      "compile": "npx hardhat compile",
-      "deploy": "npx hardhat ignition deploy ignition/modules/FitechDeployment.js"
-  }
+    "name": "fitech-token",
+    "version": "1.0.0",
+    "description": "Fitech Staking Project",
+    "devDependencies": {
+        "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+        "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+        "@nomicfoundation/hardhat-ignition": "^0.15.0",
+        "hardhat": "^2.23.0"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^5.0.2",
+        "dotenv": "^16.4.5",
+        "ethers": "^6.13.2"
+    },
+    "scripts": {
+        "test": "npx hardhat test",
+        "compile": "npx hardhat compile",
+        "deploy": "npx hardhat ignition deploy ignition/modules/FitechDeployment.js"
+    }
 }
