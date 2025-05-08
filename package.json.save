@@ -1,9 +1,7 @@
-{
-    "name": "fitech-token",
-    "version": "1.0.0",
-    "description": "Fitech Staking Project",
-    "devDependencies": {
-        "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+# Paste the code above, save (Ctrl+O, Enter, Ctrl+X){
+rm -rf node_modules package-lock.json "name": "fitech-token", "version": "1.0.0", "description": "Fitech 
+    Staking Project", "devDependencies": {
+npm install        "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
         "@nomicfoundation/hardhat-toolbox": "^5.0.0",
         "@nomicfoundation/hardhat-ignition": "^0.15.0",
         "hardhat": "^2.23.0"
@@ -19,3 +17,6 @@
         "deploy": "npx hardhat ignition deploy ignition/modules/FitechDeployment.js"
     }
 }
+npx hardhat clean
+rm -rf cache artifacts
+

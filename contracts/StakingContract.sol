@@ -53,7 +53,7 @@ contract StakingContract {
 
     function unstake(uint256 amount) external {
         StakeInfo storage userStake = stakes[msg.sender];
-        require(userStake.amount >= amount, "Insufficient staked amount");
+        require(userStake.amount >= amount, "Insufficient amount staked");
         require(block.timestamp >= userStake.stakeTime + lockupPeriod, "Lockup period not passed");
         claimReward();
         userStake.amount -= amount;
